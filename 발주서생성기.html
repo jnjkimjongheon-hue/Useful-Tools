@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>자동 발주서 관리 시스템 V7.0</title>
+<script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+<style>
+    :root {
+        --bg-color: #f5f6fa;
+        --navy: #1a2744;
+        --blue: #3b82f6;
+        --blue-hover: #2563eb;
+        --green: #10b981;
+        --green-hover: #059669;
+        --text-main: #1e293b;
+        --text-sub: #64748b;
+        --border: #e2e8f0;
+        --white: #ffffff;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: '맑은 고딕', 'Malgun Gothic', sans-serif; background-color: var(--bg-color); color: var(--text-main); font-size: 14px; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 30px 20px; }
+
+    /* Header & Tabs */
+    .header { margin-bottom: 24px; }
+    .header h1 { font-size: 24px; color: var(--navy); margin-bottom: 20px; font-weight: 700; }
+    .tabs { display: inline-flex; gap: 8px; background: #e2e8f0; padding: 6px; border-radius: 12px; flex-wrap: wrap; }
+    .tab-btn { padding: 10px 22px; border: none; background: transparent; border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--text-sub); cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+    .tab-btn.active { background: var(--white); color: var(--navy); box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+
+    /* Section */
+    .section { display: none; background: var(--white); padding: 24px; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); margin-bottom: 24px; }
+    .section.active { display: block; animation: fadeIn 0.25s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    .section-title { font-size: 18px; font-weight: 700; color: var(--navy); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+
+    /* Form */
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 20px; background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+    input, select { padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 14px; transition: border 0.2s; background: #fff; }
+    input:focus, select:focus { outline: none; border-color: var(--blue); }
+
+    /* Buttons */
+    .btn { padding: 10px 20px; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn-primary { background: var(--blue); color: var(--white); }
+    .btn-primary:hover:not(:disabled) { background: var(--blue-hover); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .btn-navy { background: var(--navy); color: var(--white); }
+    .btn-success { background: var(--green); color: var(--white); }
+    .btn-success:hover:not(:disabled) { background: var(--green-hover); }
+    .btn-outline { background: var(--white); border: 1px solid var(--border); color: var(--text-main); }
+    .btn-outline:hover { background: #f1f5f9; }
+    .btn-sm { padding: 6px 12px; font-size: 12px; }
+    .btn-danger { background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5; }
+    .btn-danger:hover { background: #fecaca; }
+
+    /* Tables */
+    .table-container { overflow-x: auto; border: 1px solid var(--border); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; text-align: left; }
+    th { background: var(--navy); color: var(--white); padding: 12px 16px; font-weight: 600; font-size: 13px; white-space: nowrap; }
+    td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+
+    .flex { display: flex; }
+    .gap-2 { gap: 8px; }
+    .gap-4 { gap: 16px; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .unit-box { background: #e0f2fe; padding: 10px; border-radius: 8px; border: 1px solid #bae6fd; font-size: 13px; color: #0369a1; }
+    .bottom-action-bar { display: flex; justify-content: space-between; align-items: flex-end; margin-top: 24px; padding-top: 24px; border-top: 1px solid var(--border); flex-wrap: wrap; gap: 16px; }
+    .orderer-info { display: flex; gap: 16px; background: #f8fafc; padding: 16px; border-radius: 12px; border: 1px solid var(--border); flex-wrap: wrap; }
+    .action-btns { display: flex; gap: 4px; }
+
+    /* ── Analysis Tab ── */
+    .analysis-card { background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 20px; }
+    .analysis-card .card-title { font-size: 15px; font-weight: 700; color: var(--navy); margin-bottom: 14px; }
+
+    .drop-zone {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        background: #fff;
+        min-height: 130px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: border-color 0.2s, background 0.2s;
+        position: relative;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--blue); background: #eff6ff; }
+
+    .radio-wrap { display: flex; gap: 14px; flex-wrap: wrap; }
+    .radio-label { display: flex; align-items: center; gap: 8px; cursor: pointer; padding: 12px 20px; border: 2px solid var(--border); border-radius: 10px; font-weight: 600; font-size: 14px; transition: all 0.2s; }
+    .radio-label:hover { border-color: var(--blue); }
+    .radio-label input[type=radio] { display: none; }
+    .radio-label.selected { border-color: var(--blue); background: #eff6ff; color: var(--blue); }
+
+    .match-ok  { color: #059669; font-size: 11px; font-weight: 700; margin-top: 3px; }
+    .match-err { color: #ef4444; font-size: 11px; font-weight: 700; margin-top: 3px; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid #e2e8f0; border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 6px; }
+
+    .result-notice-ok  { background: #d1fae5; border: 1px solid #6ee7b7; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #065f46; margin-bottom: 14px; }
+    .result-notice-warn{ background: #fef3c7; border: 1px solid #fcd34d; border-radius: 8px; padding: 12px 16px; font-size: 13px; color: #92400e; margin-bottom: 14px; }
+    .result-error      { background: #fee2e2; border: 1px solid #fca5a5; border-radius: 10px; padding: 20px; color: #ef4444; }
+
+    .apply-bar { display: flex; justify-content: flex-end; align-items: center; gap: 16px; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .apply-note { font-size: 13px; color: var(--text-sub); }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>📦 자동 발주서 관리 시스템</h1>
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="po"       onclick="switchTab('po',this)">📋 자동발주서</button>
+      <button class="tab-btn"        data-tab="product"  onclick="switchTab('product',this)">🛍 제품관리</button>
+      <button class="tab-btn"        data-tab="center"   onclick="switchTab('center',this)">🏭 물류센터 관리</button>
+      <button class="tab-btn"        data-tab="analysis" onclick="switchTab('analysis',this)">📸 발주서 이미지 분석</button>
+    </div>
+  </div>
+
+  <!-- ══ TAB 1: 자동발주서 ══ -->
+  <div id="tab-po" class="section active">
+    <div class="section-title">발주서 작성
+      <span style="font-size:12px;font-weight:normal;color:var(--text-sub);">* 발주수량(개)을 입력하면 1박스 당 내품수량에 맞춰 자동 분할됩니다.</span>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:25%">상품명</th>
+            <th style="width:14%">패키징 유닛</th>
+            <th style="width:14%">발주수량 (개)</th>
+            <th style="width:13%">계산된 박스 수</th>
+            <th style="width:24%">센터명(수령자)</th>
+            <th style="width:10%;text-align:center">관리</th>
+          </tr>
+        </thead>
+        <tbody id="po-table-body"></tbody>
+      </table>
+    </div>
+    <div class="bottom-action-bar">
+      <div class="orderer-info">
+        <div class="form-group"><label>주문일</label><input type="date" id="order-date"></div>
+        <div class="form-group"><label>주문자명</label><input type="text" id="orderer-name" placeholder="예: 홍길동"></div>
+        <div class="form-group"><label>주문자 연락처</label><input type="text" id="orderer-phone" placeholder="010-0000-0000"></div>
+      </div>
+      <div class="flex gap-2">
+        <button type="button" class="btn btn-outline" onclick="initPO()">초기화</button>
+        <button type="button" class="btn btn-primary" onclick="generateExcel()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          서식 엑셀 다운로드
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB 2: 제품관리 ══ -->
+  <div id="tab-product" class="section">
+    <div class="section-title">제품 관리 (등록/수정)</div>
+    <div class="form-grid">
+      <div class="form-group"><label>상품명</label><input type="text" id="p-name"></div>
+      <div class="form-group"><label>제조사</label><input type="text" id="p-maker"></div>
+      <div class="form-group"><label>제조원가</label><input type="number" id="p-cost" placeholder="숫자만 (예: 1000)"></div>
+      <div class="form-group"><label>소비기한</label><input type="text" id="p-exp" placeholder="예: 25.08.25"></div>
+    </div>
+    <div class="form-grid" style="background:#eff6ff;border-color:#bfdbfe;">
+      <div class="form-group"><label>단위명 (ea)</label><input type="text" id="p-ea-name" value="ea"></div>
+      <div class="form-group"><label>내용량/ea</label><input type="text" id="p-weight" placeholder="예: 15g"></div>
+      <div class="form-group"><label>1 Set = ? ea</label><input type="number" id="p-set" value="1" min="1"></div>
+      <div class="form-group"><label>1 Box(Ctn) = ? 개</label><input type="number" id="p-ctn" value="1" min="1"></div>
+      <div class="form-group"><label>1 PLT = ? Box</label><input type="number" id="p-plt" value="50" min="1"></div>
+    </div>
+    <div class="flex justify-between items-center" style="margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+      <div class="unit-box">💡 발주 분할 기준: 이 제품의 <strong>1박스(Ctn)는 <span id="p-calc-result">1</span> 개</strong>로 구성됩니다.</div>
+      <div class="flex gap-2">
+        <button type="button" class="btn btn-outline" id="btn-cancel-edit" style="display:none" onclick="clearProductForm()">수정 취소</button>
+        <button type="button" class="btn btn-navy"   id="btn-add-product" onclick="addOrUpdateProduct()">제품 추가</button>
+      </div>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>상품명</th><th>제조사</th><th>제조원가</th><th>소비기한</th>
+            <th>내용량</th><th>SKU 내용</th><th>1박스 내품수량(개)</th><th>관리</th>
+          </tr>
+        </thead>
+        <tbody id="product-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ TAB 3: 물류센터 관리 ══ -->
+  <div id="tab-center" class="section">
+    <div class="section-title">
+      물류센터 관리 (등록/수정)
+      <select id="filter-channel" class="btn-outline btn-sm" style="font-weight:normal;margin-left:10px;" onchange="renderCenters()">
+        <option value="ALL">전체 채널 보기</option>
+      </select>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>채널</label><input type="text" id="c-channel" placeholder="예: 쿠팡, 컬리"></div>
+      <div class="form-group"><label>센터명</label><input type="text" id="c-name" placeholder="예: 동탄1물류센터"></div>
+      <div class="form-group"><label>연락처</label><input type="text" id="c-phone" placeholder="010-0000-0000"></div>
+      <div class="form-group" style="grid-column:1/-1;align-items:flex-start;">
+        <label>주소 검색</label>
+        <button type="button" class="btn btn-outline" style="border-color:var(--blue);color:var(--blue);" onclick="execDaumPostcode()">🔍 도로명 주소 찾기</button>
+      </div>
+      <div class="form-group"><label>우편번호</label><input type="text" id="c-zip" placeholder="검색 또는 직접 입력"></div>
+      <div class="form-group" style="grid-column:1/-1;"><label>상세 주소</label><input type="text" id="c-addr" placeholder="주소를 직접 입력하거나 검색해주세요."></div>
+    </div>
+    <div class="flex" style="justify-content:flex-end;margin-bottom:20px;gap:8px;">
+      <button type="button" class="btn btn-outline" id="btn-cancel-center-edit" style="display:none" onclick="clearCenterForm()">수정 취소</button>
+      <button type="button" class="btn btn-navy"   id="btn-add-center" onclick="addOrUpdateCenter()">센터 추가</button>
+    </div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>채널</th><th>센터명</th><th>연락처</th><th>우편번호</th><th>주소</th><th>관리</th></tr></thead>
+        <tbody id="center-list"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ TAB 4: 발주서 이미지 분석 ══ -->
+  <div id="tab-analysis" class="section">
+    <div class="section-title">📸 발주서 이미지 분석
+      <span style="font-size:12px;font-weight:normal;color:var(--text-sub);">컬리·쿠팡 로켓그로스 발주서 화면 캡처를 업로드하면 자동으로 분석합니다</span>
+    </div>
+
+    <!-- file:// 환경 경고 배너 -->
+    <div id="file-protocol-banner" style="display:none;background:#fef3c7;border:2px solid #f59e0b;border-radius:12px;padding:18px 20px;margin-bottom:20px;">
+      <div style="font-size:15px;font-weight:700;color:#92400e;margin-bottom:10px;">⚠️ AI 기능 사용 전 필수 설정</div>
+      <div style="font-size:13px;color:#78350f;line-height:1.9;margin-bottom:14px;">
+        현재 파일을 <strong>file://</strong> 방식으로 열었습니다.<br>
+        브라우저 보안 정책으로 인해 <strong>외부 API(Gemini) 연결이 차단</strong>됩니다.<br>
+        아래 <strong>①번 방법</strong>이 가장 쉽습니다. 실행 파일을 다운받아 HTML과 같은 폴더에 놓고 더블클릭하세요.
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <!-- 방법 1: 런처 bat 다운로드 -->
+        <div style="background:#fff8e1;border:1px solid #fcd34d;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;color:#92400e;margin-bottom:8px;">✅ 방법 ① (권장) — 전용 실행 파일 사용</div>
+          <div style="font-size:12px;color:#78350f;margin-bottom:10px;">
+            1. 아래 버튼으로 <strong>실행파일(.bat)</strong> 다운로드<br>
+            2. 이 HTML 파일과 <strong>같은 폴더</strong>에 저장<br>
+            3. bat 파일을 <strong>더블클릭</strong>하면 크롬이 올바르게 열립니다
+          </div>
+          <button type="button" onclick="downloadLauncher()" class="btn btn-primary" style="font-size:13px;padding:8px 18px;">
+            📥 크롬 실행 파일 다운로드 (.bat)
+          </button>
+        </div>
+        <!-- 방법 2: 수동 명령어 -->
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:14px;">
+          <div style="font-weight:700;color:#166534;margin-bottom:8px;">방법 ② — 직접 실행 (개발자용)</div>
+          <div style="font-size:12px;color:#166534;margin-bottom:6px;">윈도우 실행(Win+R) 또는 CMD에 아래 명령어 입력:</div>
+          <code id="cmd-text" style="display:block;background:#dcfce7;padding:8px 12px;border-radius:6px;font-size:11px;word-break:break-all;color:#14532d;cursor:pointer;" onclick="copyCmdText()" title="클릭하여 복사"></code>
+          <div style="font-size:11px;color:#6b7280;margin-top:4px;">👆 클릭하면 복사됩니다</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Key -->
+    <div class="analysis-card">
+      <div class="card-title">🔑 Gemini API 키 설정</div>
+      <div class="flex gap-2 items-center" style="flex-wrap:wrap;">
+        <input type="password" id="gemini-api-key" placeholder="Gemini API 키를 입력하세요 (aistudio.google.com 무료 발급)" style="flex:1;min-width:280px;">
+        <button type="button" class="btn btn-primary" onclick="saveApiKey()">저장</button>
+        <button type="button" class="btn btn-outline" onclick="toggleKeyVis()" title="보이기/숨기기">👁</button>
+        <button type="button" class="btn btn-outline" onclick="testConnection()" style="border-color:#10b981;color:#10b981;" title="API 키 연결 테스트">🔌 연결 테스트</button>
+      </div>
+      <div id="api-key-status" style="font-size:12px;color:var(--text-sub);margin-top:8px;"></div>
+    </div>
+
+    <!-- Platform -->
+    <div class="analysis-card">
+      <div class="card-title">📦 플랫폼 선택</div>
+      <div class="radio-wrap" id="platform-wrap">
+        <label class="radio-label selected" onclick="selectPlatform(this,'로켓그로스')">
+          <input type="radio" name="platform" value="로켓그로스" checked> 🚀 쿠팡 로켓그로스
+        </label>
+        <label class="radio-label" onclick="selectPlatform(this,'컬리')">
+          <input type="radio" name="platform" value="컬리"> 🛒 컬리(Kurly)
+        </label>
+      </div>
+    </div>
+
+    <!-- Upload -->
+    <div class="analysis-card">
+      <div class="card-title">📷 발주서 이미지 업로드</div>
+      <div id="drop-zone" class="drop-zone"
+           ondragover="event.preventDefault();this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)"
+           onclick="document.getElementById('img-input').click()">
+        <div id="drop-ph" style="display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-sub);pointer-events:none;">
+          <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" style="opacity:.4"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          <div style="font-size:16px;font-weight:600;">이미지를 드래그하거나 클릭하여 업로드</div>
+          <div style="font-size:13px;">PNG / JPG / WEBP 지원</div>
+        </div>
+        <img id="img-preview" style="display:none;max-width:100%;max-height:360px;object-fit:contain;border-radius:8px;pointer-events:none;">
+      </div>
+      <input type="file" id="img-input" accept="image/*" style="display:none" onchange="handleFileSelect(event)">
+      <div id="img-filename" style="font-size:12px;color:var(--text-sub);margin-top:8px;"></div>
+    </div>
+
+    <!-- Analyze button -->
+    <div style="text-align:center;margin:24px 0;">
+      <button id="analyze-btn" type="button" class="btn btn-primary" onclick="analyzeImage()" style="padding:14px 48px;font-size:16px;border-radius:12px;">
+        🤖 AI 분석 시작
+      </button>
+    </div>
+
+    <!-- Results -->
+    <div id="analysis-result"></div>
+  </div>
+
+</div><!-- /container -->
+
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  const firebaseConfig = {
+    apiKey: "AIzaSyAuMFvIwSP7Q6Yv_SIuZ7HmCJ9LcGFDwwo",
+    authDomain: "useful-utilities-e2452.firebaseapp.com",
+    databaseURL: "https://useful-utilities-e2452-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "useful-utilities-e2452",
+    storageBucket: "useful-utilities-e2452.firebasestorage.app",
+    messagingSenderId: "712569672880",
+    appId: "1:712569672880:web:a35b15c323a547469d1775"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+</script>
+
+
+
+<script>
+/* ══════════════════════════════════════════
+   DATA
+══════════════════════════════════════════ */
+let products = [
+  { id:'p_1',  name:'유기인증 처음먹는 우아갓구운김', cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:10,  pltCtn:50 },
+  { id:'p_2',  name:'우아 곡물바',                   cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:20,  pltCtn:50 },
+  { id:'p_3',  name:'우아 100억 요거볼',             cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:20,  pltCtn:50 },
+  { id:'p_4',  name:'우아 콘팝 딸기맛',              cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:25,  pltCtn:50 },
+  { id:'p_5',  name:'우아 콘팝 초코맛',              cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:25,  pltCtn:50 },
+  { id:'p_6',  name:'우아 콘팝 옥수수맛',            cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:25,  pltCtn:50 },
+  { id:'p_7',  name:'CCAP 주스',                     cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:5,   pltCtn:50 },
+  { id:'p_8',  name:'소고기칩 100g',                 cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:50,  pltCtn:50 },
+  { id:'p_9',  name:'소고기칩 30g',                  cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:100, pltCtn:50 },
+  { id:'p_10', name:'프릿 비프칩 오리지널맛',        cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:80,  pltCtn:50 },
+  { id:'p_11', name:'프릿 비프칩 청양고추맛',        cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:80,  pltCtn:50 },
+  { id:'p_12', name:'프릿 비프칩 바베큐맛',          cost:'', maker:'', exp:'', unitName:'ea', weight:'', setEa:1, ctnSet:80,  pltCtn:50 }
+];
+
+let centers = [
+  // 쿠팡 인천
+  { id:'c_3',  channel:'쿠팡', name:'인천28물류센터(쿠팡)', phone:'070-4741-9124', zip:'22853', addr:'인천 서구 북항로120번길 55 7층 30번 DOCK' },
+  { id:'c_6',  channel:'쿠팡', name:'인천28-2물류센터(쿠팡)', phone:'070-4741-9124', zip:'', addr:'인천 서구 북항로120번길 55 7층 30번 DOCK' },
+  { id:'c_4',  channel:'쿠팡', name:'인천14(쿠팡)',          phone:'070-7284-4180', zip:'22335', addr:'인천 중구 축항대로 165번길 20(항동7가) 7F 11번 Dock' },
+  { id:'c_22', channel:'쿠팡', name:'인천16(쿠팡)',          phone:'070-4754-0751', zip:'22342', addr:'인천광역시 중구 항구7 104-1 [서해대로 113] (송도H로지스) 6층 5번' },
+  { id:'c_25', channel:'쿠팡', name:'인천42(쿠팡)',          phone:'070-4747-2984', zip:'22788', addr:'인천광역시 서구 봉수대로 370 A710 DOCK' },
+  { id:'c_26', channel:'쿠팡', name:'인천32(쿠팡)',          phone:'070-4747-2982', zip:'22788', addr:'인천광역시 서구 봉수대로 370 석남혁신물류센터 6층 B동 604 DOCK' },
+  // 쿠팡 경기
+  { id:'c_18', channel:'쿠팡', name:'고양1(쿠팡)',           phone:'070-7176-7571', zip:'10550', addr:'경기도 고양시 덕양구 권율대로 570 켄달스퀘어 4층 A동 4번 DOCK' },
+  { id:'c_21', channel:'쿠팡', name:'부천1(쿠팡)',           phone:'070-8898-8564', zip:'14446', addr:'경기도 부천시 오정구 신흥로511번길 80 3층 B동 302번 DOCK' },
+  { id:'c_5',  channel:'쿠팡', name:'이천2물류센터(쿠팡)',   phone:'070-5158-8142', zip:'17383', addr:'경기 이천시 마장면 이장로 329-38 1F 3번 Dock' },
+  { id:'c_19', channel:'쿠팡', name:'이천4(쿠팡)',           phone:'070-5154-1564', zip:'17405', addr:'경기 이천시 부발읍 송온리 442 쿠팡 이천4센터(황무로 1901)' },
+  { id:'c_13', channel:'쿠팡', name:'안성8(쿠팡)',           phone:'070-5158-0095', zip:'17527', addr:'경기도 안성시 일죽면 노성로 168-121, 3층 13번 Dock' },
+  { id:'c_8',  channel:'쿠팡', name:'안산3물류센터(쿠팡)',   phone:'070-7682-4893', zip:'15657', addr:'경기도 안산시 단원구 시화호수로 835 4층 1번 DOCK' },
+  { id:'c_9',  channel:'쿠팡', name:'동탄1물류센터(쿠팡)',   phone:'070-7771-6872', zip:'',      addr:'경기도 화성시 동탄물류1로13 쿠팡동탄물류센터 3F 3번 Dock 로켓그로스 하차장' },
+  { id:'c_14', channel:'쿠팡', name:'경기광주3(쿠팡)',       phone:'070-4732-1870', zip:'12774', addr:'경기 광주시 오포로297번길 54 (쿠팡 경기광주3센터) 2F 2번 Dock' },
+  { id:'c_20', channel:'쿠팡', name:'경기광주5(쿠팡)',       phone:'070-4786-7034 / 070-4786-7036', zip:'12774', addr:'경기도 광주시 오포로297번길 35 쿠팡 경기광주5센터 3층 택배하차장' },
+  // 쿠팡 경상
+  { id:'c_1',  channel:'쿠팡', name:'창원4물류센터(쿠팡)',   phone:'1670-4064',     zip:'',      addr:'경상남도 창원시 진해구 두동남로 52 쿠팡창원4센터 2층 5번 DOCK' },
+  { id:'c_2',  channel:'쿠팡', name:'창원1물류센터(쿠팡)',   phone:'070-4420-4468', zip:'51599', addr:'경상남도 창원시 진해구 두동로 33(쿠팡 창원1센터) 301~2번 Dock' },
+  { id:'c_23', channel:'쿠팡', name:'창원3(쿠팡)',           phone:'070-5154-9950', zip:'51599', addr:'경상남도 창원시 진해구 두동로34 5층 창원3센터 310DOCK' },
+  { id:'c_7',  channel:'쿠팡', name:'양산1물류센터(쿠팡)',   phone:'070-5154-4819', zip:'50615', addr:'양산시 물금읍 제방로 27 CJ한국복합물류 A동 쿠팡 양산 1센터 38번 Dock' },
+  { id:'c_10', channel:'쿠팡', name:'대구2물류센터(쿠팡)',   phone:'070-5154-2944', zip:'',      addr:'경상북도 칠곡군 지천면 금호로 272 9동 쿠팡 대구물류센터 1층 18,19번 DOCK' },
+  { id:'c_11', channel:'쿠팡', name:'대구6물류센터(쿠팡)',   phone:'070-7771-6872', zip:'18465', addr:'경북 칠곡군 금호로 272 8동 쿠팡 대구 6센터' },
+  // 쿠팡 전라
+  { id:'c_24', channel:'쿠팡', name:'전라광주4(쿠팡)',       phone:'070-4735-8079', zip:'62466', addr:'광주광역시 광산구 평동산단 7번로 16-8 2번 DOCK' },
+  { id:'c_12', channel:'쿠팡', name:'전라광주5(쿠팡)',       phone:'070-5150-0952', zip:'62466', addr:'광주 광산구 평동산단9번로 43(연산동) 쿠팡 전라광주5센터 4층 8번 DOCK' },
+  // 컬리
+  { id:'c_15', channel:'컬리', name:'평택상온5층(컬리)', phone:'010-5820-3061', zip:'17794', addr:'평택시 청북읍 고렴산단로66, 5층 31번 도크 내부' },
+  { id:'c_16', channel:'컬리', name:'창원상온(컬리)',    phone:'010-5820-8265', zip:'',      addr:'창원시 진해구 두동서로33, 6층 A604' },
+  { id:'c_17', channel:'컬리', name:'김포상온3층(컬리)', phone:'010-5820-2746', zip:'',      addr:'경기도 김포시 아라육로 75 켄달스퀘어김포 LP 3층 A301' }
+];
+
+let poItems = [];
+let editingProductId = null;
+let editingCenterId = null;
+let uploadedImageData = null;
+let uploadedImageType = null;
+let analysisResults = [];
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  const today = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('order-date').value =
+    `${today.getFullYear()}-${pad(today.getMonth()+1)}-${pad(today.getDate())}`;
+
+  const saved = localStorage.getItem('gemini_api_key');
+  if(saved) {
+    document.getElementById('gemini-api-key').value = saved;
+    setKeyStatus('✅ 저장된 API 키를 불러왔습니다.', '#059669');
+  }
+
+  document.getElementById('p-ctn').addEventListener('input', function(){
+    document.getElementById('p-calc-result').innerText = parseInt(this.value||1);
+  });
+
+  /* file:// 프로토콜 감지 → 경고 배너 표시 */
+  if(location.protocol === 'file:') {
+    const banner = document.getElementById('file-protocol-banner');
+    if(banner) banner.style.display = 'block';
+    /* 명령어 텍스트 생성 */
+    const htmlPath = location.href.replace(/^file:\/\/\//, '').replace(/\//g, '\\');
+    const cmd = `"C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" --disable-web-security --user-data-dir="%TEMP%\\chrome-workup" "${decodeURIComponent(htmlPath)}"`;
+    const cmdEl = document.getElementById('cmd-text');
+    if(cmdEl) cmdEl.textContent = cmd;
+  }
+
+  renderProducts();
+  renderCenters();
+  initPO();
+});
+
+/* ══════════════════════════════════════════
+   TAB
+══════════════════════════════════════════ */
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  (btn || document.querySelector(`[data-tab="${id}"]`)).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  if(id === 'po') renderPO();
+}
+
+function selectPlatform(lbl, val) {
+  document.querySelectorAll('.radio-label').forEach(l => l.classList.remove('selected'));
+  lbl.classList.add('selected');
+  lbl.querySelector('input').checked = true;
+}
+
+/* ══════════════════════════════════════════
+   PRODUCT LOGIC
+══════════════════════════════════════════ */
+function renderProducts() {
+  document.getElementById('product-list').innerHTML = products.map(p => `
+    <tr>
+      <td style="font-weight:600">${p.name}</td>
+      <td>${p.maker||'-'}</td>
+      <td style="color:#ef4444;font-weight:600">${p.cost ? Number(p.cost).toLocaleString()+'원' : '-'}</td>
+      <td>${p.exp||'-'}</td>
+      <td style="color:#0369a1;font-weight:600">${p.weight||'-'}</td>
+      <td style="font-size:12px;color:var(--text-sub)">1Set=${p.setEa}${p.unitName}<br>1Ctn=${p.ctnSet}개<br>1PLT=${p.pltCtn}Ctn</td>
+      <td><span style="background:#e0f2fe;padding:4px 8px;border-radius:4px;font-weight:700;color:#0284c7">${p.ctnSet} 개</span></td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-outline" onclick="copyProduct('${p.id}')">복사</button>
+          <button class="btn btn-sm btn-outline" onclick="editProduct('${p.id}')">수정</button>
+          <button class="btn btn-sm btn-danger"  onclick="deleteProduct('${p.id}')">삭제</button>
+        </div>
+      </td>
+    </tr>`).join('');
+}
+
+function addOrUpdateProduct() {
+  const name = document.getElementById('p-name').value.trim();
+  if(!name) return alert('상품명을 입력하세요.');
+  const d = {
+    name, maker: document.getElementById('p-maker').value, cost: document.getElementById('p-cost').value,
+    exp: document.getElementById('p-exp').value, unitName: document.getElementById('p-ea-name').value,
+    weight: document.getElementById('p-weight').value,
+    setEa: parseInt(document.getElementById('p-set').value)||1,
+    ctnSet: parseInt(document.getElementById('p-ctn').value)||1,
+    pltCtn: document.getElementById('p-plt').value
+  };
+  if(editingProductId) {
+    const i = products.findIndex(p => p.id === editingProductId);
+    if(i !== -1) products[i] = { ...products[i], ...d };
+  } else {
+    d.id = 'p_' + Date.now();
+    products.push(d);
+    poItems.push({ uid: uid(), productId: d.id, qty: '', centerId: '' });
+  }
+  clearProductForm(); renderProducts(); renderPO();
+}
+
+function editProduct(id) {
+  const p = products.find(p => p.id === id); if(!p) return;
+  document.getElementById('p-name').value   = p.name;   document.getElementById('p-maker').value = p.maker;
+  document.getElementById('p-cost').value   = p.cost;   document.getElementById('p-exp').value   = p.exp;
+  document.getElementById('p-ea-name').value= p.unitName; document.getElementById('p-weight').value= p.weight;
+  document.getElementById('p-set').value    = p.setEa;  document.getElementById('p-ctn').value   = p.ctnSet;
+  document.getElementById('p-plt').value    = p.pltCtn; document.getElementById('p-calc-result').innerText = p.ctnSet;
+  editingProductId = id;
+  const btn = document.getElementById('btn-add-product');
+  btn.textContent = '✅ 수정 완료'; btn.classList.replace('btn-navy','btn-success');
+  document.getElementById('btn-cancel-edit').style.display = 'inline-flex';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function copyProduct(id) {
+  const p = products.find(p => p.id === id); if(!p) return;
+  const np = { ...p, id:'p_'+Date.now(), name: p.name+' (복사본)' };
+  products.push(np);
+  poItems.push({ uid: uid(), productId: np.id, qty: '', centerId: '' });
+  renderProducts(); renderPO();
+}
+
+function clearProductForm() {
+  ['p-name','p-cost','p-maker','p-exp','p-weight'].forEach(i => document.getElementById(i).value='');
+  document.getElementById('p-ea-name').value='ea'; document.getElementById('p-set').value=1;
+  document.getElementById('p-ctn').value=1; document.getElementById('p-plt').value=50;
+  document.getElementById('p-calc-result').innerText=1;
+  editingProductId = null;
+  const btn = document.getElementById('btn-add-product');
+  btn.textContent='제품 추가'; btn.classList.replace('btn-success','btn-navy');
+  document.getElementById('btn-cancel-edit').style.display='none';
+}
+
+function deleteProduct(id) {
+  if(!confirm('정말 삭제하시겠습니까?')) return;
+  products = products.filter(p => p.id !== id);
+  poItems = poItems.filter(po => po.productId !== id);
+  renderProducts(); renderPO();
+}
+
+/* ══════════════════════════════════════════
+   CENTER LOGIC
+══════════════════════════════════════════ */
+function execDaumPostcode() {
+  if(window.location.protocol==='file:')
+    alert('🚨 로컬 파일 환경에서는 주소 검색이 차단될 수 있습니다.\n우편번호와 주소를 직접 입력해주세요.');
+  new daum.Postcode({ oncomplete(d) {
+    let road = d.roadAddress, ex = '';
+    if(d.bname && /[동로가]$/.test(d.bname)) ex += d.bname;
+    if(d.buildingName && d.apartment==='Y') ex += (ex?', ':'')+d.buildingName;
+    if(ex) ex = ' ('+ex+')';
+    document.getElementById('c-zip').value  = d.zonecode;
+    document.getElementById('c-addr').value = road+ex+' ';
+    document.getElementById('c-addr').focus();
+  }}).open();
+}
+
+function renderCenters() {
+  const fv = document.getElementById('filter-channel').value;
+  const dd = document.getElementById('filter-channel');
+  const channels = [...new Set(centers.map(c=>c.channel).filter(Boolean))];
+  dd.innerHTML = `<option value="ALL">전체 채널 보기</option>`
+    + channels.map(ch=>`<option value="${ch}" ${fv===ch?'selected':''}>${ch}</option>`).join('');
+  const list = fv==='ALL' ? centers : centers.filter(c=>c.channel===fv);
+  document.getElementById('center-list').innerHTML = list.map(c=>`
+    <tr>
+      <td><span style="background:#f1f5f9;padding:4px 8px;border-radius:4px;font-weight:600;font-size:12px">${c.channel||'기타'}</span></td>
+      <td style="font-weight:600">${c.name}</td>
+      <td>${c.phone}</td>
+      <td>${c.zip}</td>
+      <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${c.addr}">${c.addr}</td>
+      <td>
+        <div class="action-btns">
+          <button class="btn btn-sm btn-outline" onclick="copyCenter('${c.id}')">복사</button>
+          <button class="btn btn-sm btn-outline" onclick="editCenter('${c.id}')">수정</button>
+          <button class="btn btn-sm btn-danger"  onclick="deleteCenter('${c.id}')">삭제</button>
+        </div>
+      </td>
+    </tr>`).join('');
+  renderPO();
+}
+
+function addOrUpdateCenter() {
+  const name = document.getElementById('c-name').value.trim();
+  if(!name) return alert('센터명을 입력하세요.');
+  const d = {
+    channel: document.getElementById('c-channel').value, name,
+    phone: document.getElementById('c-phone').value,
+    zip: document.getElementById('c-zip').value, addr: document.getElementById('c-addr').value
+  };
+  if(editingCenterId) {
+    const i = centers.findIndex(c=>c.id===editingCenterId);
+    if(i!==-1) centers[i] = { ...centers[i], ...d };
+  } else { d.id = 'c_'+Date.now(); centers.push(d); }
+  clearCenterForm(); renderCenters();
+}
+
+function editCenter(id) {
+  const c = centers.find(c=>c.id===id); if(!c) return;
+  ['c-channel','c-name','c-phone','c-zip','c-addr'].forEach(k =>
+    document.getElementById(k).value = c[k.replace('c-','')]||'');
+  document.getElementById('c-channel').value = c.channel||'';
+  document.getElementById('c-name').value    = c.name||'';
+  document.getElementById('c-phone').value   = c.phone||'';
+  document.getElementById('c-zip').value     = c.zip||'';
+  document.getElementById('c-addr').value    = c.addr||'';
+  editingCenterId = id;
+  const btn = document.getElementById('btn-add-center');
+  btn.textContent='✅ 수정 완료'; btn.classList.replace('btn-navy','btn-success');
+  document.getElementById('btn-cancel-center-edit').style.display='inline-flex';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function copyCenter(id) {
+  const c = centers.find(c=>c.id===id); if(!c) return;
+  centers.push({ ...c, id:'c_'+Date.now(), name:c.name+' (복사본)' });
+  renderCenters();
+}
+
+function clearCenterForm() {
+  ['c-channel','c-name','c-phone','c-zip','c-addr'].forEach(i=>document.getElementById(i).value='');
+  editingCenterId=null;
+  const btn = document.getElementById('btn-add-center');
+  btn.textContent='센터 추가'; btn.classList.replace('btn-success','btn-navy');
+  document.getElementById('btn-cancel-center-edit').style.display='none';
+}
+
+function deleteCenter(id) {
+  if(!confirm('정말 삭제하시겠습니까?')) return;
+  centers = centers.filter(c=>c.id!==id);
+  poItems.forEach(po=>{ if(po.centerId===id) po.centerId=''; });
+  renderCenters();
+}
+
+/* ══════════════════════════════════════════
+   PO LOGIC
+══════════════════════════════════════════ */
+function initPO() {
+  poItems = products.map(p => ({ uid: uid(), productId: p.id, qty: '', centerId: '' }));
+  renderPO();
+}
+
+function renderPO() {
+  document.getElementById('po-table-body').innerHTML = poItems.map(item => {
+    const prod = products.find(p=>p.id===item.productId); if(!prod) return '';
+    const boxes = item.qty > 0 ? Math.ceil(item.qty / prod.ctnSet) : 0;
+    return `
+    <tr style="background:${item.qty>0?'#fff':'#f8fafc'}">
+      <td style="font-weight:600">${prod.name}</td>
+      <td style="color:var(--text-sub);font-size:13px">1박스 = ${prod.ctnSet}개</td>
+      <td><input type="number" min="0" placeholder="0" value="${item.qty}" style="width:100%;text-align:right"
+           onchange="updatePOQty('${item.uid}',this.value)"></td>
+      <td style="text-align:center;font-weight:700;color:var(--blue);font-size:16px">
+        ${boxes>0 ? boxes+' <span style="font-size:12px;color:#94a3b8;font-weight:normal">박스</span>' : '-'}
+      </td>
+      <td>
+        <select style="width:100%" onchange="updatePOCenter('${item.uid}',this.value)">
+          <option value="">-- 센터 선택 --</option>
+          ${centers.map(c=>`<option value="${c.id}" ${item.centerId===c.id?'selected':''}>[${c.channel||'기타'}] ${c.name}</option>`).join('')}
+        </select>
+      </td>
+      <td style="text-align:center">
+        <div class="action-btns" style="justify-content:center">
+          <button class="btn btn-sm btn-outline" onclick="copyPORow('${item.uid}')">복사</button>
+          <button class="btn btn-sm" style="background:transparent;color:#ef4444;border:none" onclick="deletePORow('${item.uid}')">✖</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function updatePOQty(u, v) {
+  const i = poItems.find(i=>i.uid===u); if(i){ i.qty=parseInt(v)||''; renderPO(); }
+}
+function updatePOCenter(u, v) {
+  const i = poItems.find(i=>i.uid===u); if(i) i.centerId=v;
+}
+function copyPORow(u) {
+  const i = poItems.find(i=>i.uid===u); if(!i) return;
+  const idx = poItems.findIndex(i=>i.uid===u);
+  poItems.splice(idx+1, 0, { ...i, uid:uid(), qty:'', centerId:'' }); renderPO();
+}
+function deletePORow(u) { poItems=poItems.filter(i=>i.uid!==u); renderPO(); }
+
+/* ══════════════════════════════════════════
+   EXCEL EXPORT
+══════════════════════════════════════════ */
+function generateExcel() {
+  const ds = document.getElementById('order-date').value;
+  if(!ds) return alert('주문일을 입력해주세요.');
+  const [y,m,d] = ds.split('-');
+  const fmtDate = [y,m,d].join('.');
+  const yymmdd  = y.slice(2)+m+d;
+  const orderer = document.getElementById('orderer-name').value.trim();
+  const phone   = document.getElementById('orderer-phone').value.trim();
+
+  let rows = [];
+  poItems.forEach(item => {
+    if(!(item.qty>0 && item.centerId)) return;
+    const prod   = products.find(p=>p.id===item.productId);
+    const center = centers.find(c=>c.id===item.centerId);
+    const full   = Math.floor(item.qty / prod.ctnSet);
+    const rem    = item.qty % prod.ctnSet;
+    const mk = (qty) => ({
+      _ch: center.channel,
+      주문일: fmtDate, 주문자: orderer, 주문자연락처: phone,
+      수령자: center.name, 수령자연락처: center.phone,
+      우편번호: center.zip, 통합주소: center.addr,
+      배송메세지: '', 상품명: prod.name, 옵션: '',
+      내품수량: qty,
+      비고: center.channel ? `B2B${center.channel}` : 'B2B발주',
+      발송방식: '택배', 주문번호: '', 주문상세번호: ''
+    });
+    for(let i=0;i<full;i++) rows.push(mk(prod.ctnSet));
+    if(rem>0) rows.push(mk(rem));
+  });
+
+  if(!rows.length) return alert('발주수량이 입력되고 센터가 지정된 항목이 없습니다.');
+  rows.sort((a,b)=>a.수령자.localeCompare(b.수령자));
+
+  const usedCh = [...new Set(rows.map(r=>r._ch))];
+  const chStr  = usedCh.length===1 ? usedCh[0] : '혼합';
+  const fname  = `${yymmdd}_발주서(${chStr}).xls`;
+
+  const HDR = ['주문일','주문자','주문자연락처','수령자','수령자연락처','우편번호','통합주소','배송메세지','상품명','옵션','내품수량','비고','발송방식','주문번호','주문상세번호'];
+  let tbl = `<table border="1" style="font-family:'맑은 고딕',sans-serif;font-size:11pt;border-collapse:collapse">`;
+  tbl += `<tr style="background:#F2F2F2;height:32px">${HDR.map(h=>`<th style="border:1px solid #BFBFBF;font-weight:bold;vertical-align:middle;text-align:center">${h}</th>`).join('')}</tr>`;
+  rows.forEach(r => {
+    tbl += `<tr style="height:25px">${HDR.map(h=>{
+      const v = r[h]??'';
+      const al = (h==='통합주소'||h==='상품명') ? 'left' : 'center';
+      return `<td style="border:1px solid #BFBFBF;vertical-align:middle;text-align:${al};mso-number-format:'\\@'">${v}</td>`;
+    }).join('')}</tr>`;
+  });
+  tbl += `</table>`;
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body>${tbl}</body></html>`;
+  const blob = new Blob(['\uFEFF'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.setAttribute('download', fname);
+  a.style.visibility='hidden';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 200);
+}
+
+/* ══════════════════════════════════════════
+   FILE:// 환경 해결 도우미
+══════════════════════════════════════════ */
+function downloadLauncher() {
+  const raw   = location.href.replace(/^file:\/\/\//, '');
+  const htmlPath = decodeURIComponent(raw).replace(/\//g, '\\');
+
+  const batContent = `@echo off
+chcp 65001 > nul
+echo [WorkUp] 발주서 이미지 분석 전용 크롬 실행 중...
+echo.
+echo ※ 이 창은 자동으로 닫히지 않습니다. 크롬이 열리면 최소화하세요.
+echo.
+
+REM 크롬 경로 자동 탐색
+set CHROME=""
+if exist "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe" (
+  set CHROME="C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe"
+) else if exist "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe" (
+  set CHROME="C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+) else (
+  echo [오류] 크롬을 찾을 수 없습니다.
+  echo 크롬이 설치된 경로를 직접 입력하거나 크롬을 설치해주세요.
+  pause
+  exit
+)
+
+start "" %CHROME% --disable-web-security --user-data-dir="%TEMP%\\chrome-workup-dev" "${htmlPath}"
+echo 크롬이 실행되었습니다. 이 창을 닫아도 됩니다.
+timeout /t 3 > nul
+`;
+
+  const blob = new Blob([batContent], { type: 'text/plain;charset=ansi' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.setAttribute('download', 'WorkUp_발주서분석_크롬실행.bat');
+  a.style.visibility = 'hidden';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 200);
+}
+
+function copyCmdText() {
+  const text = document.getElementById('cmd-text')?.textContent || '';
+  try {
+    navigator.clipboard.writeText(text).then(() => alert('복사되었습니다!'));
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); ta.remove();
+    alert('복사되었습니다!');
+  }
+}
+
+/* ══════════════════════════════════════════
+   API KEY
+══════════════════════════════════════════ */
+function saveApiKey() {
+  const k = document.getElementById('gemini-api-key').value.trim();
+  if(!k) return alert('API 키를 입력하세요.');
+  localStorage.setItem('gemini_api_key', k);
+  setKeyStatus('✅ API 키가 저장되었습니다.', '#059669');
+}
+function toggleKeyVis() {
+  const el = document.getElementById('gemini-api-key');
+  el.type = el.type==='password' ? 'text' : 'password';
+}
+function setKeyStatus(msg, color) {
+  const s = document.getElementById('api-key-status');
+  s.textContent = msg; s.style.color = color;
+}
+
+/* ══════════════════════════════════════════
+   IMAGE UPLOAD
+══════════════════════════════════════════ */
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragover');
+  const f = e.dataTransfer.files[0];
+  if(f) loadImageFile(f);
+}
+function handleFileSelect(e) {
+  const f = e.target.files[0]; if(f) loadImageFile(f);
+}
+function loadImageFile(f) {
+  if(!f.type.startsWith('image/')) return alert('이미지 파일만 업로드 가능합니다.');
+  const reader = new FileReader();
+  reader.onload = ev => {
+    uploadedImageData = ev.target.result.split(',')[1];
+    uploadedImageType = f.type;
+    const prev = document.getElementById('img-preview');
+    prev.src = ev.target.result;
+    prev.style.display = 'block';
+    document.getElementById('drop-ph').style.display = 'none';
+    document.getElementById('img-filename').textContent = `📎 ${f.name}  (${(f.size/1024).toFixed(0)} KB)`;
+    document.getElementById('analysis-result').innerHTML = '';
+  };
+  reader.readAsDataURL(f);
+}
+
+/* ══════════════════════════════════════════
+   CENTER MATCHING
+   - 이미지에서 읽은 센터명 → centers[] 자동 매칭
+══════════════════════════════════════════ */
+function normName(s) {
+  return s.replace(/\s/g,'').toLowerCase().replace(/\(.*?\)/g,'');
+}
+function matchCenter(raw, channelFilter) {
+  if(!raw) return null;
+  const inp = normName(raw);
+
+  // Pass 1: 직접 포함 여부
+  for(const c of centers) {
+    if(channelFilter && c.channel !== channelFilter) continue;
+    const nc = normName(c.name);
+    if(nc === inp || nc.includes(inp) || inp.includes(nc)) return c;
+  }
+
+  // Pass 2: "창원상온6층" → "창원상온"  (숫자+층 접미사 제거)
+  const stripped = inp.replace(/\d+층$/, '');
+  if(stripped !== inp && stripped.length > 1) {
+    for(const c of centers) {
+      if(channelFilter && c.channel !== channelFilter) continue;
+      const nc = normName(c.name);
+      if(nc === stripped || nc.includes(stripped) || stripped.includes(nc)) return c;
+    }
+  }
+  return null;
+}
+
+/* ══════════════════════════════════════════
+   PRODUCT MATCHING
+   - 이미지에서 읽은 상품명 → products[] 자동 매칭
+══════════════════════════════════════════ */
+function matchProduct(raw) {
+  if(!raw) return null;
+  const inp = raw
+    .replace(/[\[\]]/g,'')
+    .replace(/\/(\d+[gml]+)/gi,' $1')
+    .replace(/1개/g,'')
+    .replace(/\s+/g,' ').trim().toLowerCase();
+
+  // Pass 1: 단순 포함
+  for(const p of products) {
+    const np = p.name.toLowerCase();
+    if(np.includes(inp) || inp.includes(np)) return p;
+  }
+
+  // Pass 2: 단어 스코어
+  const words = inp.split(/\s+/).filter(w => w.length > 1);
+  const ranked = products.map(p => {
+    const np = p.name.toLowerCase();
+    return { p, score: words.reduce((s,w) => s+(np.includes(w)?1:0), 0) };
+  }).sort((a,b) => b.score - a.score);
+
+  return ranked[0].score >= 1 ? ranked[0].p : null;
+}
+
+/* ══════════════════════════════════════════
+   GEMINI UTILS
+══════════════════════════════════════════ */
+
+/* 이미지 압축: 최대 1280px, JPEG 75% — 요청 크기 최소화 */
+async function compressImage(base64, mimeType) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1280;
+      let w = img.width, h = img.height;
+      if(w > MAX || h > MAX) {
+        const r = Math.min(MAX/w, MAX/h);
+        w = Math.round(w*r); h = Math.round(h*r);
+      }
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      const dataUrl = c.toDataURL('image/jpeg', 0.75);
+      resolve({ data: dataUrl.split(',')[1], mimeType: 'image/jpeg' });
+    };
+    img.onerror = () => resolve({ data: base64, mimeType }); // 실패 시 원본 사용
+    img.src = `data:${mimeType};base64,${base64}`;
+  });
+}
+
+/* 단일 Gemini 호출 (Content-Type 헤더 없음 → CORS Preflight 우회) */
+async function geminiCall(apiKey, model, bodyObj) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
+  /* ※ Content-Type 헤더를 의도적으로 생략 → 브라우저가 text/plain으로 전송
+       → CORS Simple Request로 처리 → Preflight 없이 file:// 환경에서도 동작 */
+  const res = await fetch(url, { method: 'POST', body: JSON.stringify(bodyObj) });
+  if(!res.ok) {
+    const e = await res.json().catch(()=>({}));
+    throw new Error(e.error?.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+/* API 연결 테스트 (텍스트만, 이미지 없음) */
+async function testConnection() {
+  const apiKey = (localStorage.getItem('gemini_api_key')||'').trim();
+  if(!apiKey) return alert('API 키를 먼저 저장해주세요.');
+  setKeyStatus('🔌 연결 테스트 중...', '#64748b');
+  try {
+    const data = await geminiCall(apiKey, 'gemini-1.5-flash', {
+      contents: [{ parts: [{ text: '안녕하세요. 테스트입니다. "연결성공" 이라고만 답해주세요.' }]}]
+    });
+    const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답 없음';
+    setKeyStatus(`✅ 연결 성공! 응답: ${txt.trim()}`, '#059669');
+  } catch(e) {
+    setKeyStatus(`❌ 연결 실패: ${e.message} — 크롬 확장프로그램(광고차단 등)을 끄고 재시도하세요.`, '#ef4444');
+  }
+}
+
+/* ══════════════════════════════════════════
+   GEMINI IMAGE ANALYSIS
+══════════════════════════════════════════ */
+async function analyzeImage() {
+  const apiKey = (localStorage.getItem('gemini_api_key')||'').trim();
+  if(!apiKey) return alert('Gemini API 키를 먼저 입력하고 저장해주세요.');
+  if(!uploadedImageData) return alert('분석할 이미지를 먼저 업로드해주세요.');
+
+  const platform = document.querySelector('input[name="platform"]:checked').value;
+  const isKurly  = platform === '컬리';
+
+  const prompt = isKurly
+    ? `이것은 컬리(Kurly) 발주 확인 화면 스크린샷입니다.
+테이블의 모든 발주 항목을 추출하여 JSON 배열만 반환하세요. 마크다운 코드블록 없이.
+형식: [{"입고지":"센터명(예:창원상온6층)","상품명":"전체 상품명","박스수":숫자,"낱개수량":숫자}]
+수량/낱개수량 컬럼 예) 3/75 → 박스수=3, 낱개수량=75`
+    : `이것은 쿠팡 로켓그로스 입고 관리 화면 스크린샷입니다.
+모든 입고 항목을 추출하여 JSON 배열만 반환하세요. 마크다운 코드블록 없이.
+형식: [{"센터명":"코드(예:인천32)","상품명":"전체 상품명","박스수":숫자,"총수량":숫자}]
+"택배 박스 N | 총수량 M" → 박스수=N, 총수량=M`;
+
+  const btn = document.getElementById('analyze-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>AI 분석 중...';
+  document.getElementById('analysis-result').innerHTML =
+    `<div style="text-align:center;padding:50px;color:var(--text-sub)"><span class="spinner"></span>이미지 압축 및 AI 분석 중...</div>`;
+
+  /* 이미지 압축 */
+  const { data: imgData, mimeType: imgMime } = await compressImage(uploadedImageData, uploadedImageType);
+
+  const MODELS = [
+    'gemini-2.5-flash-lite',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-2.5-pro'
+  ];
+  let parsed = null, usedModel = null;
+  const errLog = [];
+
+  for(const model of MODELS) {
+    try {
+      const data = await geminiCall(apiKey, model, {
+        contents: [{ parts: [
+          { inline_data: { mime_type: imgMime, data: imgData } },
+          { text: prompt }
+        ]}],
+        generationConfig: { temperature: 0, topP: 0.95 }
+      });
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      const clean = text.replace(/```json/g,'').replace(/```/g,'').trim();
+      parsed = JSON.parse(clean);
+      usedModel = model;
+      break;
+    } catch(e) {
+      errLog.push(`❌ ${model}: ${e.message}`);
+    }
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '🤖 AI 분석 시작';
+
+  if(!parsed) {
+    document.getElementById('analysis-result').innerHTML = `
+      <div class="result-error">
+        <strong>⚠️ 분석 실패 — 모든 모델 응답 없음</strong>
+        <div style="margin-top:10px;font-size:13px;line-height:1.9">${errLog.join('<br>')}</div>
+        <div style="margin-top:14px;padding:12px;background:rgba(0,0,0,.05);border-radius:8px;font-size:12px;line-height:1.8">
+          <strong>해결 방법:</strong><br>
+          1. 위 <strong>🔌 연결 테스트</strong> 버튼으로 API 키 확인<br>
+          2. 크롬 확장프로그램(uBlock, 광고차단 등) 비활성화 후 재시도<br>
+          3. 크롬 시크릿 창에서 파일 열기 (확장프로그램 우회)<br>
+          4. API 키가 AIzaSy 로 시작하는지 확인
+        </div>
+      </div>`;
+    return;
+  }
+
+  console.log('✅ 분석 성공 모델:', usedModel);
+  renderAnalysisResult(parsed, platform);
+}
+
+/* ══════════════════════════════════════════
+   RENDER ANALYSIS RESULT
+══════════════════════════════════════════ */
+function renderAnalysisResult(items, platform) {
+  if(!items.length) {
+    document.getElementById('analysis-result').innerHTML =
+      `<div style="text-align:center;padding:40px;color:var(--text-sub)">분석된 항목이 없습니다. 이미지를 다시 확인해주세요.</div>`;
+    return;
+  }
+
+  const isKurly = platform === '컬리';
+  const channelFilter = isKurly ? '컬리' : '쿠팡';
+  const bigo = isKurly ? 'B2B컬리' : 'B2B쿠팡';
+
+  analysisResults = items.map((item, i) => {
+    const rawCenter  = isKurly ? item.입고지   : item.센터명;
+    const totalQty   = isKurly ? (item.낱개수량||0) : (item.총수량||0);
+    const boxCount   = Math.max(item.박스수||1, 1);
+    const qtyPerBox  = Math.round(totalQty / boxCount);
+    return {
+      i, rawProduct: item.상품명, rawCenter,
+      boxCount, qtyPerBox, totalQty, bigo,
+      mc: matchCenter(rawCenter,  channelFilter),
+      mp: matchProduct(item.상품명)
+    };
+  });
+
+  const unmatch = analysisResults.filter(r => !r.mc || !r.mp).length;
+  const notice  = unmatch
+    ? `<div class="result-notice-warn">⚠️ <strong>${unmatch}개 항목</strong>의 제품 또는 센터를 자동매칭하지 못했습니다. 드롭다운에서 수동으로 선택해주세요.</div>`
+    : `<div class="result-notice-ok">✅ 모든 항목이 자동으로 매칭되었습니다. 내용을 확인 후 적용해주세요.</div>`;
+
+  const rows = analysisResults.map(r => `
+    <tr>
+      <td style="font-size:13px">${r.rawProduct}</td>
+      <td style="text-align:center;font-weight:700">${r.boxCount}</td>
+      <td style="text-align:center">
+        <span style="background:#e0f2fe;padding:4px 10px;border-radius:4px;font-weight:700;color:#0284c7">${r.qtyPerBox}개</span>
+      </td>
+      <td style="text-align:center">${r.totalQty}개</td>
+      <td style="font-size:12px;color:var(--text-sub)">${r.rawCenter||'-'}</td>
+      <td>
+        <select id="rp-${r.i}" style="width:100%;font-size:12px">
+          <option value="">-- 제품 선택 --</option>
+          ${products.map(p=>`<option value="${p.id}" ${r.mp?.id===p.id?'selected':''}>${p.name}</option>`).join('')}
+        </select>
+        <div class="${r.mp?'match-ok':'match-err'}">${r.mp?'✓ 자동매칭':'⚠ 수동 선택 필요'}</div>
+      </td>
+      <td>
+        <select id="rc-${r.i}" style="width:100%;font-size:12px">
+          <option value="">-- 센터 선택 --</option>
+          ${centers.map(c=>`<option value="${c.id}" ${r.mc?.id===c.id?'selected':''}>[${c.channel}] ${c.name}</option>`).join('')}
+        </select>
+        <div class="${r.mc?'match-ok':'match-err'}">${r.mc?'✓ 자동매칭':'⚠ 수동 선택 필요'}</div>
+      </td>
+      <td><span style="background:#e0f2fe;padding:4px 8px;border-radius:4px;font-size:12px;font-weight:600;color:#0369a1">${r.bigo}</span></td>
+    </tr>`).join('');
+
+  document.getElementById('analysis-result').innerHTML = `
+    <div style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:10px">
+      📋 분석 결과 — ${analysisResults.length}개 항목
+    </div>
+    ${notice}
+    <div class="table-container" style="margin-bottom:0">
+      <table>
+        <thead><tr>
+          <th>이미지 상품명</th>
+          <th>박스수</th>
+          <th>박스당 내품수량</th>
+          <th>총 발주수량</th>
+          <th>이미지 센터명</th>
+          <th style="min-width:200px">매칭 제품</th>
+          <th style="min-width:220px">매칭 센터</th>
+          <th>비고</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <!-- 주문자 정보 -->
+    <div style="background:#f8fafc;border:1px solid var(--border);border-radius:12px;padding:18px;margin-top:20px;">
+      <div style="font-size:14px;font-weight:700;color:var(--navy);margin-bottom:12px;">📝 주문자 정보 <span style="font-size:12px;font-weight:normal;color:var(--text-sub)">(엑셀 다운로드 시 기입)</span></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;">
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:12px;font-weight:600;color:var(--text-sub);">주문일</label>
+          <input type="date" id="ar-order-date" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:12px;font-weight:600;color:var(--text-sub);">주문자명</label>
+          <input type="text" id="ar-orderer-name" placeholder="예: 홍길동" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px;">
+          <label style="font-size:12px;font-weight:600;color:var(--text-sub);">주문자 연락처</label>
+          <input type="text" id="ar-orderer-phone" placeholder="010-0000-0000" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;">
+        </div>
+      </div>
+    </div>
+    <!-- 버튼 -->
+    <div class="apply-bar">
+      <span class="apply-note">* 기존 같은 제품+센터 조합이 있으면 수량을 덮어씁니다.</span>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <button type="button" class="btn btn-primary" onclick="downloadAnalysisExcel()" style="padding:12px 28px;font-size:15px;">
+          📥 엑셀 다운로드
+        </button>
+        <button type="button" class="btn btn-success" onclick="applyToPO()" style="padding:12px 28px;font-size:15px;">
+          ✅ 발주서에 적용하기
+        </button>
+      </div>
+    </div>`;
+
+  /* 주문자 정보 자동 채움: tab-po 입력값 → 분석 탭 입력란 */
+  const poDate  = document.getElementById('order-date')?.value || '';
+  const poName  = document.getElementById('orderer-name')?.value || '';
+  const poPhone = document.getElementById('orderer-phone')?.value || '';
+  const arDate  = document.getElementById('ar-order-date');
+  const arName  = document.getElementById('ar-orderer-name');
+  const arPhone = document.getElementById('ar-orderer-phone');
+  if(arDate  && !arDate.value)  arDate.value  = poDate  || (() => { const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; })();
+  if(arName  && !arName.value)  arName.value  = poName;
+  if(arPhone && !arPhone.value) arPhone.value = poPhone;
+}
+
+/* ══════════════════════════════════════════
+   ANALYSIS → EXCEL DOWNLOAD
+   분석 결과를 바로 엑셀로 다운로드
+══════════════════════════════════════════ */
+function downloadAnalysisExcel() {
+  if(!analysisResults.length) return alert('분석 결과가 없습니다.');
+
+  const ds    = document.getElementById('ar-order-date')?.value || '';
+  const oName = document.getElementById('ar-orderer-name')?.value || '';
+  const oPhone= document.getElementById('ar-orderer-phone')?.value || '';
+  if(!ds) return alert('주문일을 입력해주세요.');
+
+  const [y,m,d] = ds.split('-');
+  const fmtDate = [y,m,d].join('.');
+  const yymmdd  = y.slice(2)+m+d;
+
+  const errors = [];
+  let rows = [];
+
+  analysisResults.forEach(r => {
+    const productId = document.getElementById(`rp-${r.i}`)?.value;
+    const centerId  = document.getElementById(`rc-${r.i}`)?.value;
+    if(!productId){ errors.push(`"${r.rawProduct}" → 제품을 선택해주세요.`); return; }
+    if(!centerId) { errors.push(`"${r.rawProduct}" → 센터를 선택해주세요.`);  return; }
+
+    const prod   = products.find(p => p.id === productId);
+    const center = centers.find(c => c.id === centerId);
+    if(!prod || !center) return;
+
+    const fullBoxes = Math.floor(r.totalQty / prod.ctnSet);
+    const remainder = r.totalQty % prod.ctnSet;
+
+    const mkRow = (qty) => ({
+      주문일: fmtDate, 주문자: oName, 주문자연락처: oPhone,
+      수령자: center.name, 수령자연락처: center.phone,
+      우편번호: center.zip, 통합주소: center.addr,
+      배송메세지: '', 상품명: prod.name, 옵션: '',
+      내품수량: qty,
+      비고: r.bigo || (center.channel ? `B2B${center.channel}` : 'B2B발주'),
+      발송방식: '택배', 주문번호: '', 주문상세번호: ''
+    });
+
+    for(let i=0; i<fullBoxes; i++) rows.push(mkRow(prod.ctnSet));
+    if(remainder > 0) rows.push(mkRow(remainder));
+  });
+
+  if(errors.length) { alert(`일부 항목 선택 필요:\n\n${errors.join('\n')}`); return; }
+  if(!rows.length)  return alert('다운로드할 데이터가 없습니다.');
+
+  rows.sort((a,b) => a.수령자.localeCompare(b.수령자));
+
+  const HDR = ['주문일','주문자','주문자연락처','수령자','수령자연락처','우편번호','통합주소','배송메세지','상품명','옵션','내품수량','비고','발송방식','주문번호','주문상세번호'];
+  let tbl = `<table border="1" style="font-family:'맑은 고딕',sans-serif;font-size:11pt;border-collapse:collapse">`;
+  tbl += `<tr style="background:#F2F2F2;height:32px">${HDR.map(h=>`<th style="border:1px solid #BFBFBF;font-weight:bold;vertical-align:middle;text-align:center">${h}</th>`).join('')}</tr>`;
+  rows.forEach(r => {
+    tbl += `<tr style="height:25px">${HDR.map(h => {
+      const v = r[h] ?? '';
+      const al = (h==='통합주소'||h==='상품명') ? 'left' : 'center';
+      return `<td style="border:1px solid #BFBFBF;vertical-align:middle;text-align:${al};mso-number-format:'\\@'">${v}</td>`;
+    }).join('')}</tr>`;
+  });
+  tbl += `</table>`;
+
+  /* 채널명 → 파일명 */
+  const bigos   = [...new Set(rows.map(r=>r.비고))];
+  const chLabel = bigos.length === 1 ? bigos[0].replace('B2B','') : '혼합';
+  const fname   = `${yymmdd}_발주서(${chLabel}_분석).xls`;
+
+  const html = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"></head><body>${tbl}</body></html>`;
+  const blob = new Blob(['\uFEFF'+html], {type:'application/vnd.ms-excel;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.setAttribute('download', fname);
+  a.style.visibility = 'hidden';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(a.href); }, 200);
+}
+
+/* ══════════════════════════════════════════
+   APPLY TO PO
+   필수 기재항목 보장:
+   - 수령자/수령자연락처/통합주소 → 선택된 센터에서 자동 주입
+   - 상품명 → 선택된 제품에서 자동 주입
+   - 내품수량 → qtyPerBox (1박스 단위로 분할, generateExcel이 처리)
+   - 비고 → B2B쿠팡 / B2B컬리 (채널에서 자동 생성)
+   - 발송방식 → 택배 (generateExcel 고정값)
+   - 주문일/주문자/주문자연락처 → 자동발주서 하단 입력칸
+══════════════════════════════════════════ */
+function applyToPO() {
+  if(!analysisResults.length) return alert('적용할 데이터가 없습니다.');
+
+  const errors = [];
+  let applied  = 0;
+
+  analysisResults.forEach(r => {
+    const productId = document.getElementById(`rp-${r.i}`).value;
+    const centerId  = document.getElementById(`rc-${r.i}`).value;
+
+    if(!productId){ errors.push(`"${r.rawProduct}" → 제품을 선택해주세요.`); return; }
+    if(!centerId) { errors.push(`"${r.rawProduct}" → 센터를 선택해주세요.`);  return; }
+
+    // 같은 제품+센터 조합 → 수량 업데이트
+    let slot = poItems.find(po => po.productId===productId && po.centerId===centerId);
+    if(slot) {
+      slot.qty = r.totalQty;
+    } else {
+      // 같은 제품의 빈 슬롯 → 재사용
+      let empty = poItems.find(po => po.productId===productId && !po.centerId && !po.qty);
+      if(empty) {
+        empty.qty = r.totalQty;
+        empty.centerId = centerId;
+      } else {
+        // 새 행 추가
+        poItems.push({ uid: uid(), productId, qty: r.totalQty, centerId });
+      }
+    }
+    applied++;
+  });
+
+  if(errors.length) alert(`일부 항목 적용 실패:\n\n${errors.join('\n')}`);
+  if(applied) {
+    alert(`✅ ${applied}개 항목을 발주서에 적용했습니다!\n\n[자동발주서] 탭에서 주문자 정보를 입력하고 엑셀을 다운로드하세요.`);
+    renderPO();
+    switchTab('po', document.querySelector('[data-tab="po"]'));
+  }
+}
+
+/* ══════════════════════════════════════════
+   UTILS
+══════════════════════════════════════════ */
+function uid() { return 'po_' + Math.random().toString(36).substr(2,9); }
+</script>
+</body>
+</html>
